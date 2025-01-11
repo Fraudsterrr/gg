@@ -1,0 +1,158 @@
+import random
+import time
+
+class PingChooser:
+    def __init__(self, available_servers):
+        self.available_servers = available_servers  # List of available server locations
+        self.selected_server = None  # The server the user selects
+        self.ping_times = {}  # Dictionary to store ping times for each server
+        self.server_status = {}  # Dictionary to store the status (online/offline) for each server
+        self.max_ping_retries = 5  # Max retries for pinging a server (to handle network issues)
+        self.retries_per_server = 0  # Retry count per server
+
+    # Simulate pinging a server with a possible failure rate
+    def simulate_ping(self, server):
+        is_successful = random.choice([True, False])  # Randomly choose if the ping succeeds or fails
+        if is_successful:
+            # Simulate a ping time between 50ms and 300ms
+            return random.randint(50, 300)
+        else:
+            return None  # Simulate a failed ping (server timeout)
+
+    # Simulate checking server status (online/offline)
+    def check_server_status(self, server):
+        # Randomly simulate the server being online or offline
+        return random.choice(["Online", "Offline"])
+
+    # Simulate user preferences like ping time threshold for choosing servers
+    def set_user_preferences(self):
+        print("\nSetting up your preferences for the best gaming experience...")
+        print("You can set your preferred maximum ping time (in ms).")
+        try:
+            user_ping_preference = int(input("Enter your maximum preferred ping time (between 50ms and 300ms): "))
+            if 50 <= user_ping_preference <= 300:
+                print(f"Your preferred ping time is set to {user_ping_preference}ms.")
+                self.user_ping_preference = user_ping_preference
+            else:
+                print("Invalid value! Setting to the default of 200ms.")
+                self.user_ping_preference = 200
+        except ValueError:
+            print("Invalid input. Defaulting to 200ms.")
+            self.user_ping_preference = 200
+
+    # Display available servers with their status (online or offline)
+    def display_available_servers(self):
+        print("\nAvailable Servers and their Status:")
+        for index, server in enumerate(self.available_servers):
+            status = self.check_server_status(server)
+            self.server_status[server] = status  # Update the server status
+            print(f"{index + 1}. {server} - Status: {status}")
+
+    # Attempt to select a server and check its ping
+    def choose_server(self):
+        print("\nChoosing the best server for you...")
+        self.display_available_servers()
+
+        # Allow the user to select a server or retry if the selected server is offline
+        while True:
+            try:
+                server_choice = int(input("Choose a server by number (1 to 5): ")) - 1
+
+                if 0 <= server_choice < len(self.available_servers):
+                    chosen_server = self.available_servers[server_choice]
+                    status = self.server_status[chosen_server]
+
+                    if status == "Offline":
+                        print(f"Error: {chosen_server} is currently offline. Please choose another server.")
+                        continue  # Loop again to choose a different server
+
+                    # Retry logic in case ping fails
+                    retries = 0
+                    ping_time = None
+                    while retries < self.max_ping_retries and ping_time is None:
+                        print(f"Pinging {chosen_server} (Attempt {retries + 1} of {self.max_ping_retries})...")
+                        ping_time = self.simulate_ping(chosen_server)
+                        retries += 1
+                        if ping_time is None:
+                            print(f"Ping failed. Retrying...")
+
+                    # Check if ping was successful
+                    if ping_time is None:
+                        print(f"Error: Failed to ping {chosen_server} after {self.max_ping_retries} retries.")
+                        continue  # Allow the user to choose another server
+
+                    # Store the ping time
+                    self.ping_times[chosen_server] = ping_time
+
+                    # Check if ping time is within user's preference
+                    if ping_time <= self.user_ping_preference:
+                        print(f"Ping time to {chosen_server}: {ping_time} ms - Accepted!")
+                        self.selected_server = chosen_server
+                        break  # Successfully selected the server
+                    else:
+                        print(f"Ping time to {chosen_server}: {ping_time} ms - Exceeds your preferred limit.")
+                        continue  # Allow the user to retry with a different server
+
+                else:
+                    print("Invalid choice. Please select a valid server number between 1 and 5.")
+
+            except ValueError:
+                print("Invalid input. Please enter a number corresponding to a server.")
+
+    # Show the final selected server and its ping
+    def show_selected_server(self):
+        if self.selected_server:
+            print(f"\nYou have selected {self.selected_server} with a ping of {self.ping_times[self.selected_server]} ms.")
+        else:
+            print("No server selected.")
+
+    # Allow the user to retry choosing a server if they don’t like the first choice
+    def retry_choose_server(self):
+        user_choice = input("\nWould you like to retry selecting a server? (y/n): ").strip().lower()
+        if user_choice == 'y':
+            print("\nRetrying server selection...")
+            self.selected_server = None  # Reset the server selection
+            self.choose_server()  # Allow the user to choose a different server
+        elif user_choice == 'n':
+            print("\nServer selection complete. Enjoy your game!")
+        else:
+            print("Invalid choice. Please enter 'y' or 'n'.")
+            self.retry_choose_server()  # Ask again
+
+    # Advanced user feedback after selection
+    def advanced_feedback(self):
+        if self.selected_server:
+            print(f"\nAdvanced Feedback:")
+            print(f"Server: {self.selected_server}")
+            print(f"Ping Time: {self.ping_times[self.selected_server]} ms")
+            print("Recommended Settings:")
+            if self.ping_times[self.selected_server] < 100:
+                print("- Low ping detected! You can set high graphics settings for a smooth experience.")
+            elif self.ping_times[self.selected_server] < 200:
+                print("- Average ping detected. Medium graphics settings recommended.")
+            else:
+                print("- High ping detected. Consider lowering graphics settings for optimal performance.")
+
+    # Start the PingChooser process
+    def start(self):
+        print("\nWelcome to PingChooser! Let's optimize your Roblox experience.\n")
+        self.set_user_preferences()  # Get user preferences for ping
+
+        # Start choosing the server and show selected server details
+        self.choose_server()
+
+        if self.selected_server:
+            self.show_selected_server()
+            self.advanced_feedback()  # Give advanced feedback about the server
+
+            # Option to retry choosing a server if the user is unsatisfied
+            self.retry_choose_server()
+        else:
+            print("\nNo valid server was selected. Please try again later.")
+
+# Simulate the process with a list of servers
+available_servers = ["US-East", "US-West", "Europe", "Asia", "Australia"]
+ping_chooser = PingChooser(available_servers)
+
+# Start the ping chooser process
+ping_chooser.start()
